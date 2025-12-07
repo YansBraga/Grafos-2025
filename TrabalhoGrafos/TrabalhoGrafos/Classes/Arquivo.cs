@@ -46,7 +46,7 @@ namespace TrabalhoGrafos.Classes
                 IGrafo grafo = Representacao.CriarGrafo(numVertices, numArestas);
                 InserirArestas(grafo, arestas);
 
-                Log.Escrever("Importação de Arquivo", $"Arquivo grafo0{opc}.dimacs importado com sucesso.\n\n Representação definida: {grafo.ToString()}", opc);
+                Log.Escrever("Importação de Arquivo", $"Arquivo grafo0{opc}.dimacs importado com sucesso.\n\nRepresentação definida: {grafo.ToString()}", opc);
 
                 return grafo;
             }

@@ -9,10 +9,10 @@ namespace TrabalhoGrafos.Classes
 {
     public class Representacao
     {
-        public static IGrafo CriarGrafo(int numVertices, int numArestasPreistas)
+        public static IGrafo CriarGrafo(int numVertices, int numArestas)
         {            
             //Perto de 1, é denso. perto de 0, é esparso.
-            double densidade = (double)numArestasPreistas / (numVertices * (numVertices - 1));
+            double densidade = (double)numArestas / (numVertices * (numVertices - 1));
 
             if (densidade > 0.5)
             {
