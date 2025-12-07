@@ -1,41 +1,60 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TrabalhoGrafos.Interfaces;
 
 namespace TrabalhoGrafos.Classes
 {
     public class GrafoMatriz : IGrafo
     {
-        int[,] matriz;
+        private Aresta[,] matriz;
+        private int _numeroVertices;
 
-        public GrafoMatriz(int numVertices) 
+        public int NumeroVertices => _numeroVertices;
+
+        public GrafoMatriz(int numVertices)
         {
-            matriz = new int[numVertices, numVertices];
+            _numeroVertices = numVertices;
+            matriz = new Aresta[numVertices + 1, numVertices + 1];
         }
 
-        public int NumeroVertices => throw new NotImplementedException();
-
         public void AdicionarAresta(int origem, int destino, int peso, int capacidade)
-        {
-            throw new NotImplementedException();
+        {            
+            if (origem > _numeroVertices || destino > _numeroVertices)
+            {                
+                throw new Exception($"Vértice inválido para Matriz: {origem}->{destino}. Máximo: {_numeroVertices}");
+            }
+            
+            matriz[origem, destino] = new Aresta(origem, destino, peso, capacidade);
         }
 
         public bool ExisteAresta(int origem, int destino)
         {
-            throw new NotImplementedException();
+            if (origem > _numeroVertices || destino > _numeroVertices)
+                return false;
+
+            return matriz[origem, destino] != null;
         }
 
         public List<Aresta> ObterAdjacentes(int vertice)
         {
-            throw new NotImplementedException();
+            var listaAdj = new List<Aresta>();
+
+            if (vertice > _numeroVertices) return listaAdj;
+            
+            for (int i = 1; i <= _numeroVertices; i++)
+            {
+                if (matriz[vertice, i] != null)
+                {
+                    listaAdj.Add(matriz[vertice, i]);
+                }
+            }
+            return listaAdj;
         }
 
         public Aresta ObterAresta(int origem, int destino)
         {
-            throw new NotImplementedException();
+            if (origem > _numeroVertices || destino > _numeroVertices) return null;
+            return matriz[origem, destino];
         }
 
         public override string ToString()
