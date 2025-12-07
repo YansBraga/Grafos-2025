@@ -20,7 +20,7 @@ namespace TrabalhoGrafos
                 Console.WriteLine("1 - Importar Arquivo DIMACS");
                 Console.WriteLine("0 - Sair");
                 Console.Write("\nEscolha uma opção: ");
-                
+
                 if (!int.TryParse(Console.ReadLine(), out opcao))
                 {
                     Console.WriteLine("Entrada inválida! Pressione qualquer tecla...");
@@ -39,10 +39,10 @@ namespace TrabalhoGrafos
                                 Console.WriteLine($"Carregando grafo0{idArquivo}.dimacs...");
 
                                 grafo = Arquivo.ImportarArquivo(idArquivo);
-                               
+
                                 Console.WriteLine("Grafo carregado com sucesso! Pressione algo para continuar.");
                                 Console.ReadKey();
-                            
+
                                 MenuOpcoes(idArquivo);
                             }
                             catch (Exception ex)
@@ -69,7 +69,7 @@ namespace TrabalhoGrafos
             }
         }
 
-        
+
         public static void MenuOpcoes(int idArquivo)
         {
             int opcao = -1;
@@ -79,11 +79,11 @@ namespace TrabalhoGrafos
                 Console.WriteLine($"=== ANÁLISES DO GRAFO {idArquivo} ===");
                 Console.WriteLine($"Vértices: {grafo.NumeroVertices} | Tipo: {grafo.GetType().Name}");
                 Console.WriteLine("---------------------------------------------");
-                
-                Console.WriteLine("1 - Roteamento de Menor Custo (Dijkstra)");                
-                Console.WriteLine("2 - Capacidade Máxima (Fluxo Máximo)");                
-                Console.WriteLine("3 - Expansão da Rede (Árvore Geradora Mínima)");                
-                Console.WriteLine("4 - Agendamento de Manutenções (Coloração)");                
+
+                Console.WriteLine("1 - Roteamento de Menor Custo (Dijkstra)");
+                Console.WriteLine("2 - Capacidade Máxima (Fluxo Máximo)");
+                Console.WriteLine("3 - Expansão da Rede (Árvore Geradora Mínima)");
+                Console.WriteLine("4 - Agendamento de Manutenções (Coloração)");
                 Console.WriteLine("5 - Rota de Inspeção (Euleriano/Hamiltoniano)");
                 Console.WriteLine("---------------------------------------------");
 
@@ -97,7 +97,7 @@ namespace TrabalhoGrafos
                 Console.Clear();
 
                 switch (opcao)
-                {                    
+                {
                     case 1:
                         Console.Write("Informe o HUB de origem: ");
                         int origem = int.Parse(Console.ReadLine());
@@ -109,7 +109,13 @@ namespace TrabalhoGrafos
                         Console.ReadKey();
                         break;
                     case 2:
-                        Console.WriteLine("Implementar Fluxo Máximo...");
+                        Console.Write("Informe o HUB origem (fonte S): ");
+                        int s = int.Parse(Console.ReadLine());
+
+                        Console.Write("Informe o HUB destino (sorvedouro T): ");
+                        int t = int.Parse(Console.ReadLine());
+
+                        Console.WriteLine(Algoritmos.FluxoMaximoEdmondsKarp(grafo, s, t, idArquivo));
                         Console.ReadKey();
                         break;
                     case 3:

@@ -110,5 +110,103 @@ namespace TrabalhoGrafos.Classes
 
             return resultadoFinal;
         }
+        public static string FluxoMaximoEdmondsKarp(IGrafo grafo, int s, int t, int idArquivo)
+        {
+            int n = grafo.NumeroVertices;
+
+            // inicializando o fluxo e construindo rede residual inicial 
+            int[,] residual = new int[n + 1, n + 1];
+
+            for (int u = 1; u <= n; u++)
+            {
+                var adj = grafo.ObterAdjacentes(u);
+                foreach (var e in adj)
+                {
+                    int v = e.Destino;      
+                    int cap = e.Capacidade;   
+                    residual[u, v] += cap;    // considerando arestas paralelas
+                }
+            }
+
+            int fluxoMaximo = 0;
+            int[] pai = new int[n + 1];
+            int iteracoes = 0; // qtde de caminhos aumentantes encontrados
+
+            // enquanto existir caminho aumentante P em G'(f)
+            while (BfsCaminhoAumentante(residual, n, s, t, pai))
+            {
+                iteracoes++;
+
+                int delta = int.MaxValue;
+                int v = t;
+
+                while (v != s)
+                {
+                    int u = pai[v];
+                    delta = Math.Min(delta, residual[u, v]);
+                    v = u;
+                }
+
+                // para cada aresta (u, v) em P
+                v = t;
+                while (v != s)
+                {
+                    int u = pai[v];
+
+                    // atualiza rede residual
+                    // aresta direta (u->v): reduz capacidade
+                    residual[u, v] -= delta;
+                    // aresta reversa (v->u): aumenta capacidade
+                    residual[v, u] += delta;
+
+                    v = u;
+                }
+
+                // G'(f) atualizada, então acumula o fluxo
+                fluxoMaximo += delta;
+            }
+
+            // log de saíde
+
+            string resultadoFinal =
+                $"Origem (fonte S): {s} | Destino (sorvedouro T): {t} | " +
+                $"Fluxo Máximo: {fluxoMaximo} | Caminhos aumentantes usados: {iteracoes}";
+
+            Log.Escrever("Capacidade Máxima de Escoamento (Fluxo Máximo)", resultadoFinal, idArquivo);
+
+            return resultadoFinal;
+        }
+
+        /// BFS na rede residual para encontrar caminho aumentante de s ate t, ele preenche pai[] e retorna true se encontrou caminho
+        private static bool BfsCaminhoAumentante(int[,] residual, int n, int s, int t, int[] pai)
+        {
+            for (int i = 1; i <= n; i++)
+                pai[i] = -1;
+
+            Queue<int> fila = new Queue<int>();
+            fila.Enqueue(s);
+            pai[s] = -2; // marca fonte como visitada
+
+            while (fila.Count > 0)
+            {
+                int u = fila.Dequeue();
+
+                for (int v = 1; v <= n; v++)
+                {
+                    if (pai[v] == -1 && residual[u, v] > 0)
+                    {
+                        pai[v] = u;
+                        if (v == t)
+                            return true;  // chegou no destino, entao ja achou caminho
+
+                        fila.Enqueue(v);
+                    }
+                }
+            }
+
+            return false; // nao existe caminho aumentante
+        }
+
+
     }
 }
