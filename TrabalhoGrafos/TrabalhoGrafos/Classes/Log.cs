@@ -5,14 +5,14 @@ namespace TrabalhoGrafos.Classes
 {
     public static class Log
     {
-        public static void Escrever(string titulo, string mensagem, string idDimacs)
+        public static void Escrever(string titulo, string mensagem, int idDimacs)
         {
             try
-            {                
+            {
                 var diretorioBase = AppDomain.CurrentDomain.BaseDirectory;
-                var caminhoProjeto = Directory.GetParent(diretorioBase).Parent.Parent.FullName;
+                var caminhoProjeto = Directory.GetParent(diretorioBase).Parent.Parent.Parent.FullName;
                 string caminhoPastaLogs = Path.Combine(caminhoProjeto, "Logs");
-               
+
                 if (!Directory.Exists(caminhoPastaLogs))
                 {
                     Directory.CreateDirectory(caminhoPastaLogs);
@@ -40,7 +40,7 @@ namespace TrabalhoGrafos.Classes
             try
             {
                 var diretorioBase = AppDomain.CurrentDomain.BaseDirectory;
-                var caminhoProjeto = Directory.GetParent(diretorioBase).Parent.Parent.FullName;
+                var caminhoProjeto = Directory.GetParent(diretorioBase).Parent.Parent.Parent.FullName;
                 string caminhoPastaLogs = Path.Combine(caminhoProjeto, "Logs");
                 string nomeArquivo = Path.Combine(caminhoPastaLogs, $"log_grafo0{idDimacs}.txt");
 
