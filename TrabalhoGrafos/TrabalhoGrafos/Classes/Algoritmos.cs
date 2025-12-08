@@ -344,196 +344,223 @@ namespace TrabalhoGrafos.Classes
 
 
 
-        public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem)
+public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem)
+{
+    int n = grafo.NumeroVertices;
+
+    // =========================
+    // CENÁRIO A – EULERIANO (Método de Fleury)
+    // =========================
+    bool euleriano = true;
+
+    // Verifica graus de entrada e saída
+    for (int u = 1; u <= n; u++)
+    {
+        int grauSaida = grafo.ObterAdjacentes(u).Count;
+        int grauEntrada = 0;
+        for (int v = 1; v <= n; v++)
+            grauEntrada += grafo.ObterAdjacentes(v).Count(a => a.Destino == u);
+
+        if (grauEntrada != grauSaida)
         {
-            int n = grafo.NumeroVertices;
-
-            // =========================
-            // CENÁRIO A – EULERIANO
-            // =========================
-
-            // Verifica se todos os vértices têm grau de entrada igual ao grau de saída
-            bool euleriano = true;
-            for (int u = 1; u <= n; u++)
-            {
-                int grauSaida = grafo.ObterAdjacentes(u).Count;
-                int grauEntrada = 0;
-                for (int v = 1; v <= n; v++)
-                    grauEntrada += grafo.ObterAdjacentes(v).Count(a => a.Destino == u);
-
-                if (grauEntrada != grauSaida)
-                {
-                    euleriano = false;
-                    break;
-                }
-            }
-
-            // Verifica conectividade a partir do vértice escolhido
-            if (euleriano)
-            {
-                bool[] visitado = new bool[n + 1];
-                DFS(grafo, verticeOrigem, visitado);
-                if (visitado.Skip(1).Any(v => !v)) euleriano = false;
-            }
-
-            List<int> rotaEuler = new List<int>();
-            int pesoEuler = 0;
-
-            if (euleriano)
-            {
-                rotaEuler = ConstruirCicloEulerianoHierholzer(grafo, verticeOrigem, out pesoEuler);
-            }
-
-            // =========================
-            // CENÁRIO B – HAMILTONIANO (heurística)
-            // =========================
-
-            bool[] visitadoHamilton = new bool[n + 1];
-            List<int> rotaHamilton = new List<int>();
-            int pesoHamilton = 0;
-
-            int atualH = verticeOrigem;
-            rotaHamilton.Add(atualH);
-            visitadoHamilton[atualH] = true;
-
-            while (rotaHamilton.Count < n)
-            {
-                bool encontrou = false;
-                foreach (var a in grafo.ObterAdjacentes(atualH))
-                {
-                    int v = a.Destino;
-                    if (!visitadoHamilton[v])
-                    {
-                        rotaHamilton.Add(v);
-                        pesoHamilton += a.Peso;
-                        visitadoHamilton[v] = true;
-                        atualH = v;
-                        encontrou = true;
-                        break;
-                    }
-                }
-
-                if (!encontrou) break;
-            }
-
-            bool rotaHamiltonCompleta = rotaHamilton.Count == n;
-
-            // =========================
-            // LOG DETALHADO
-            // =========================
-
-            StringBuilder logDetalhado = new StringBuilder();
-            logDetalhado.AppendLine($"Rota de Inspeção do arquivo grafo0{idArquivo}.dimacs:");
-            logDetalhado.AppendLine($"Vértices: {n}");
-            logDetalhado.AppendLine($"Vértice de origem escolhido: {verticeOrigem}");
-            logDetalhado.AppendLine("");
-
-            // Cenário A
-            if (euleriano)
-            {
-                logDetalhado.AppendLine("Cenário A – Ciclo Euleriano encontrado:");
-                logDetalhado.AppendLine($"Peso total: {pesoEuler}");
-                logDetalhado.AppendLine("Rota (arestas percorridas):");
-                for (int i = 0; i < rotaEuler.Count - 1; i++)
-                {
-                    int u = rotaEuler[i];
-                    int v = rotaEuler[i + 1];
-                    int peso = grafo.ObterAdjacentes(u).First(a => a.Destino == v).Peso;
-                    logDetalhado.AppendLine($"Aresta: {u} - {v} | Peso: {peso}");
-                }
-            }
-            else
-            {
-                logDetalhado.AppendLine("Cenário A – Ciclo Euleriano NÃO existe");
-            }
-
-            logDetalhado.AppendLine("");
-
-            // Cenário B
-            logDetalhado.AppendLine("Cenário B – Percurso de Hubs:");
-            if (rotaHamiltonCompleta)
-                logDetalhado.AppendLine($"Hamiltoniano heurístico completo | Peso total: {pesoHamilton}");
-            else
-                logDetalhado.AppendLine($"Hamiltoniano heurístico parcial (não visitou todos os vértices) | Peso total: {pesoHamilton}");
-
-            logDetalhado.AppendLine("Rota (arestas percorridas):");
-            for (int i = 0; i < rotaHamilton.Count - 1; i++)
-            {
-                int u = rotaHamilton[i];
-                int v = rotaHamilton[i + 1];
-                int peso = grafo.ObterAdjacentes(u).First(a => a.Destino == v).Peso;
-                logDetalhado.AppendLine($"Aresta: {u} - {v} | Peso: {peso}");
-            }
-
-            // Escreve log no arquivo
-            Log.Escrever("Rota de Inspeção", logDetalhado.ToString(), idArquivo);
-
-            // =========================
-            // OUTPUT CONCISO
-            // =========================
-
-            string resultadoFinal = "";
-            resultadoFinal += euleriano ? $"Ciclo Euleriano encontrado | Peso: {pesoEuler}" : "Ciclo Euleriano NÃO existe";
-            resultadoFinal += " | ";
-            resultadoFinal += rotaHamiltonCompleta ? $"Hamiltoniano heurístico completo | Peso: {pesoHamilton}" :
-                                                      $"Hamiltoniano heurístico parcial | Peso: {pesoHamilton}";
-
-            return resultadoFinal;
+            euleriano = false;
+            break;
         }
-
-        // =========================
-        // MÉTODO AUXILIAR – Hierholzer para ciclo Euleriano
-        // =========================
-
-        private static List<int> ConstruirCicloEulerianoHierholzer(IGrafo grafo, int inicio, out int pesoTotal)
-        {
-            pesoTotal = 0;
-
-            // Copia a lista de adjacência para manipular arestas
-            Dictionary<int, Queue<(int destino, int peso)>> adj = new Dictionary<int, Queue<(int, int)>>();
-            for (int u = 1; u <= grafo.NumeroVertices; u++)
-                adj[u] = new Queue<(int, int)>(grafo.ObterAdjacentes(u).Select(a => (a.Destino, a.Peso)));
-
-            List<int> ciclo = new List<int>();
-            Stack<int> stack = new Stack<int>();
-            stack.Push(inicio);
-
-            while (stack.Count > 0)
-            {
-                int u = stack.Peek();
-                if (adj[u].Count == 0)
-                {
-                    ciclo.Add(u);
-                    stack.Pop();
-                }
-                else
-                {
-                    var (v, peso) = adj[u].Dequeue();
-                    stack.Push(v);
-                    pesoTotal += peso;
-                }
-            }
-
-            ciclo.Reverse();
-            return ciclo;
-        }
-
-        // =========================
-        // MÉTODO AUXILIAR – DFS para conectividade
-        // =========================
-
-        private static void DFS(IGrafo grafo, int u, bool[] visitado)
-        {
-            visitado[u] = true;
-            foreach (var a in grafo.ObterAdjacentes(u))
-            {
-                if (!visitado[a.Destino])
-                    DFS(grafo, a.Destino, visitado);
-            }
-        }
-
     }
 
+    // Verifica conectividade forte (grafo original e transposto)
+    if (euleriano)
+    {
+        bool[] visitado = new bool[n + 1];
+        DFS(grafo, verticeOrigem, visitado);
+        if (visitado.Skip(1).Any(v => !v))
+            euleriano = false;
+        else
+        {
+            // Usa a função privada para criar grafo transposto
+            IGrafo transposto = CriarTransposto(grafo);
+            Array.Fill(visitado, false);
+            DFS(transposto, verticeOrigem, visitado);
+            if (visitado.Skip(1).Any(v => !v))
+                euleriano = false;
+        }
+    }
+
+    List<int> rotaEuler = new List<int>();
+    int pesoEuler = 0;
+
+    if (euleriano)
+        rotaEuler = ConstruirCicloEulerianoFleury(grafo, verticeOrigem, out pesoEuler);
+
+    // =========================
+    // CENÁRIO B – HAMILTONIANO (Heurística Vizinho Mais Próximo)
+    // =========================
+    bool[] visitadoHamilton = new bool[n + 1];
+    List<int> rotaHamilton = new List<int>();
+    int pesoHamilton = 0;
+
+    int atualH = verticeOrigem;
+    rotaHamilton.Add(atualH);
+    visitadoHamilton[atualH] = true;
+
+    while (rotaHamilton.Count < n)
+    {
+        bool encontrou = false;
+        foreach (var a in grafo.ObterAdjacentes(atualH))
+        {
+            int v = a.Destino;
+            if (!visitadoHamilton[v])
+            {
+                rotaHamilton.Add(v);
+                pesoHamilton += a.Peso;
+                visitadoHamilton[v] = true;
+                atualH = v;
+                encontrou = true;
+                break;
+            }
+        }
+        if (!encontrou) break; // heurística termina
+    }
+
+    bool rotaHamiltonCompleta = rotaHamilton.Count == n;
+    bool rotaHamiltonCiclo = rotaHamiltonCompleta && grafo.ObterAdjacentes(atualH).Any(a => a.Destino == verticeOrigem);
+
+    // =========================
+    // LOG DETALHADO
+    // =========================
+    StringBuilder logDetalhado = new StringBuilder();
+    logDetalhado.AppendLine($"Rota de Inspeção do arquivo grafo0{idArquivo}.dimacs:");
+    logDetalhado.AppendLine($"Vértices: {n}");
+    logDetalhado.AppendLine($"Vértice de origem escolhido: {verticeOrigem}");
+    logDetalhado.AppendLine("");
+
+    // Cenário A
+    if (euleriano)
+    {
+        logDetalhado.AppendLine("Cenário A – Ciclo Euleriano encontrado:");
+        logDetalhado.AppendLine($"Peso total: {pesoEuler}");
+        logDetalhado.AppendLine("Rota (arestas percorridas):");
+        for (int i = 0; i < rotaEuler.Count - 1; i++)
+        {
+            int u = rotaEuler[i];
+            int v = rotaEuler[i + 1];
+            int peso = grafo.ObterAdjacentes(u).First(a => a.Destino == v).Peso;
+            logDetalhado.AppendLine($"Aresta: {u} - {v} | Peso: {peso}");
+        }
+    }
+    else
+        logDetalhado.AppendLine("Cenário A – Ciclo Euleriano NÃO existe");
+
+    logDetalhado.AppendLine("");
+
+    // Cenário B
+    logDetalhado.AppendLine("Cenário B – Percurso de Hubs:");
+    if (rotaHamiltonCompleta)
+        logDetalhado.AppendLine(rotaHamiltonCiclo
+            ? $"Hamiltoniano heurístico completo (ciclo fechado) | Peso total: {pesoHamilton}"
+            : $"Hamiltoniano heurístico completo (não retornou à origem) | Peso total: {pesoHamilton}");
+    else
+        logDetalhado.AppendLine($"Hamiltoniano heurístico parcial (não visitou todos os vértices) | Peso total: {pesoHamilton}");
+
+    logDetalhado.AppendLine("Rota (arestas percorridas):");
+    for (int i = 0; i < rotaHamilton.Count - 1; i++)
+    {
+        int u = rotaHamilton[i];
+        int v = rotaHamilton[i + 1];
+        int peso = grafo.ObterAdjacentes(u).First(a => a.Destino == v).Peso;
+        logDetalhado.AppendLine($"Aresta: {u} - {v} | Peso: {peso}");
+    }
+
+    // Escreve log no arquivo
+    Log.Escrever("Rota de Inspeção", logDetalhado.ToString(), idArquivo);
+
+    // =========================
+    // OUTPUT CONCISO
+    // =========================
+    string resultadoFinal = "";
+    resultadoFinal += euleriano ? $"Ciclo Euleriano encontrado | Peso: {pesoEuler}" : "Ciclo Euleriano NÃO existe";
+    resultadoFinal += " | ";
+    resultadoFinal += rotaHamiltonCompleta
+        ? (rotaHamiltonCiclo ? "Hamiltoniano heurístico completo (ciclo fechado)" : "Hamiltoniano heurístico completo (não retornou à origem)")
+        : "Hamiltoniano heurístico parcial";
+
+    return resultadoFinal;
+}
+
+// ============================
+// DFS
+// ============================
+private static void DFS(IGrafo grafo, int u, bool[] visitado)
+{
+    visitado[u] = true;
+    foreach (var a in grafo.ObterAdjacentes(u))
+    {
+        int v = a.Destino;
+        if (!visitado[v])
+            DFS(grafo, v, visitado);
+    }
+}
+
+// ============================
+// Criar Grafo Transposto
+// ============================
+private static IGrafo CriarTransposto(IGrafo grafo)
+{
+    int n = grafo.NumeroVertices;
+
+    // Supondo implementação GrafoLista (ou similar)
+    IGrafo transposto = new GrafoLista(n);
+
+    for (int u = 1; u <= n; u++)
+        foreach (var a in grafo.ObterAdjacentes(u))
+            transposto.AdicionarAresta(a.Destino, u, a.Peso, a.Capacidade);
+
+    return transposto;
+}
+
+// ============================
+// Método de Fleury
+// ============================
+private static List<int> ConstruirCicloEulerianoFleury(IGrafo grafo, int verticeOrigem, out int pesoTotal)
+{
+    int n = grafo.NumeroVertices;
+    pesoTotal = 0;
+    var adjCopy = new Dictionary<int, List<Aresta>>();
+    for (int i = 1; i <= n; i++)
+        adjCopy[i] = grafo.ObterAdjacentes(i).Select(a => new Aresta(i, a.Destino, a.Peso, a.Capacidade)).ToList();
+
+    List<int> ciclo = new List<int>();
+    Stack<int> pilha = new Stack<int>();
+    pilha.Push(verticeOrigem);
+
+    while (pilha.Count > 0)
+    {
+        int u = pilha.Peek();
+        if (adjCopy[u].Count == 0)
+        {
+            ciclo.Add(u);
+            pilha.Pop();
+        }
+        else
+        {
+            var a = adjCopy[u][0];
+            adjCopy[u].RemoveAt(0);
+            var inverso = adjCopy[a.Destino].FirstOrDefault(x => x.Destino == u);
+            if (inverso != null) adjCopy[a.Destino].Remove(inverso);
+
+            pilha.Push(a.Destino);
+            pesoTotal += a.Peso;
+        }
+    }
+
+    ciclo.Reverse();
+    return ciclo;
+}
+
+
+
+
+}
 }
 
 
