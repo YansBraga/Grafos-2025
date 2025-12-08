@@ -80,8 +80,8 @@ namespace TrabalhoGrafos
                 Console.WriteLine($"Vértices: {grafo.NumeroVertices} | Tipo: {grafo.GetType().Name}");
                 Console.WriteLine("---------------------------------------------");
 
-                Console.WriteLine("1 - Roteamento de Menor Custo (Dijkstra)");
-                Console.WriteLine("2 - Capacidade Máxima (Fluxo Máximo)");
+                Console.WriteLine("1 - Trajeto mais econômico entre dois centros");
+                Console.WriteLine("2 - Limite diário de escoamento de mercadorias");
                 Console.WriteLine("3 - Expansão da Rede (Árvore Geradora Mínima)");
                 Console.WriteLine("4 - Agendamento de Manutenções (Coloração)");
                 Console.WriteLine("5 - Rota de Inspeção (Euleriano/Hamiltoniano)");

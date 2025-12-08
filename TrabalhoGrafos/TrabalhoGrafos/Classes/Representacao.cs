@@ -14,7 +14,7 @@ namespace TrabalhoGrafos.Classes
             //Perto de 1, é denso. perto de 0, é esparso.
             double densidade = (double)numArestas / (numVertices * (numVertices - 1));
 
-            if (densidade > 0.5)
+            if (densidade > 0.25)
             {
                 return new GrafoMatriz(numVertices);
             }
