@@ -11,71 +11,49 @@ namespace TrabalhoGrafos.Classes
     {
         public static string Dijkstra(IGrafo grafo, int origem, int destino, int idArquivo)
         {
-            // --- PASSO 1: INICIALIZAÇÃO (Pseudocódigo item 1) ---
-            // dist[v] <- infinito
-            // pred[v] <- null (0 no nosso caso)
             int n = grafo.NumeroVertices;
 
-            // Usamos Dicionário para garantir que funciona mesmo se os IDs forem espalhados (ex: 1, 5, 900)
-            // Se fosse garantido sequencial, poderíamos usar int[n + 1]
+      
             var dist = new Dictionary<int, int>();
             var pred = new Dictionary<int, int>();
-            var S = new HashSet<int>(); // Conjunto de explorados (Item 2)
-
-            // Fila de Prioridade para realizar o passo 4a eficientemente
-            // Ela guarda <Vertice, DistanciaAcumulada> e sempre entrega o menor
+            var S = new HashSet<int>(); 
+            
             var pq = new PriorityQueue<int, int>();
 
-            // Inicializa tudo
-            // Nota: Não precisamos varrer todos os vértices agora, inicializamos sob demanda (lazy)
-            // mas conceitualmente todos são infinito.
-
-            // --- PASSO 2 e 3: Raiz (Pseudocódigo item 2 e 3) ---
+            
             dist[origem] = 0;
             pq.Enqueue(origem, 0);
 
-            // --- PASSO 4: Loop Principal ---
             while (pq.Count > 0)
             {
-                // PASSO 4a: Encontrar vértice com menor distância (que não está em S)
                 if (!pq.TryDequeue(out int v, out int distanciaAtual)) break;
 
-                // Se v já está em S (explorado), ignora
                 if (S.Contains(v)) continue;
 
-                // PASSO 4c: Adicionar v ao conjunto S
                 S.Add(v);
 
-                // Se chegamos ao destino, podemos parar antes (otimização)
                 if (v == destino) break;
 
-                // Analisa os vizinhos para atualizar distâncias (Relaxamento)
-                foreach (var aresta in grafo.ObterAdjacentes(v)) // Aqui pegamos as arestas de 'v'
+                foreach (var aresta in grafo.ObterAdjacentes(v)) 
                 {
                     int w = aresta.Destino;
-                    int pesoAresta = aresta.Peso; // d_vw
+                    int pesoAresta = aresta.Peso; 
 
-                    // Se w já foi explorado (está em S), pula
                     if (S.Contains(w)) continue;
 
-                    // Recupera distância atual de w (se não existir, é infinito)
                     int distW = dist.ContainsKey(w) ? dist[w] : int.MaxValue;
 
-                    // PASSO 4b: Atualizar dist[w] e pred[w] se achou caminho melhor
                     if (distanciaAtual + pesoAresta < distW)
                     {
                         dist[w] = distanciaAtual + pesoAresta;
-                        pred[w] = v; // v é o pai de w
+                        pred[w] = v; 
 
-                        // Recoloca na fila para ser avaliado no futuro
                         pq.Enqueue(w, dist[w]);
                     }
                 }
             }
 
-            // --- PÓS-PROCESSAMENTO: Montar a String de Retorno e Logar ---
 
-            // Verifica se chegou no destino
             if (!dist.ContainsKey(destino))
             {
                 string msgErro = $"Não existe caminho entre {origem} e {destino}.";
@@ -83,40 +61,35 @@ namespace TrabalhoGrafos.Classes
                 return msgErro;
             }
 
-            // Recupera o caminho andando para trás pelo array 'pred'
             var caminho = new List<int>();
             int atual = destino;
-            while (atual != 0) // 0 significa null/sem pai
+            while (atual != 0) 
             {
                 caminho.Add(atual);
 
-                if (atual == origem) break; // Chegou no início
+                if (atual == origem) break; 
 
                 if (pred.ContainsKey(atual))
                     atual = pred[atual];
                 else
-                    break; // Segurança
+                    break; 
             }
-            caminho.Reverse(); // Inverte para ficar Origem -> Destino
+            caminho.Reverse(); 
 
-            // Formata a saída
             string caminhoTexto = string.Join(" -> ", caminho);
             int custoTotal = dist[destino];
 
             string resultadoFinal = $"Custo Total: {custoTotal} | Caminho: {caminhoTexto}";
 
-            // Grava o log
             Log.Escrever("Roteamento de Menor Custo", resultadoFinal, idArquivo);
 
             return resultadoFinal;
         }
 
-        // cálculo do fluxo máximo usando o algoritmo de Edmonds-Karp
         public static string FluxoMaximoEdmondsKarp(IGrafo grafo, int s, int t, int idArquivo)
         {
             int n = grafo.NumeroVertices;
 
-            // inicializando o fluxo e construindo rede residual inicial 
             int[,] residual = new int[n + 1, n + 1];
 
             for (int u = 1; u <= n; u++)
@@ -126,15 +99,14 @@ namespace TrabalhoGrafos.Classes
                 {
                     int v = e.Destino;
                     int cap = e.Capacidade;
-                    residual[u, v] += cap;    // considerando arestas paralelas
+                    residual[u, v] += cap;    
                 }
             }
 
             int fluxoMaximo = 0;
             int[] pai = new int[n + 1];
-            int iteracoes = 0; // qtde de caminhos aumentantes encontrados
+            int iteracoes = 0; 
 
-            // enquanto existir caminho aumentante P em G'(f)
             while (BfsCaminhoAumentante(residual, n, s, t, pai))
             {
                 iteracoes++;
@@ -149,28 +121,21 @@ namespace TrabalhoGrafos.Classes
                     v = u;
                 }
 
-                // para cada aresta (u, v) em P
                 v = t;
                 while (v != s)
                 {
                     int u = pai[v];
 
-                    // atualiza rede residual
-                    // aresta direta (u->v): reduz capacidade
                     residual[u, v] -= delta;
-                    // aresta reversa (v->u): aumenta capacidade
                     residual[v, u] += delta;
 
                     v = u;
                 }
 
-                // G'(f) atualizada, então acumula o fluxo
                 fluxoMaximo += delta;
             }
 
-            // log de saíde
             
-            // se não existir nenhum caminho aumentante
             if (iteracoes == 0)
             {
                 string semCaminho =
@@ -189,7 +154,6 @@ namespace TrabalhoGrafos.Classes
             return resultadoFinal;
         }
 
-        /// BFS na rede residual para encontrar caminho aumentante de s ate t, ele preenche pai[] e retorna true se encontrou caminho
         private static bool BfsCaminhoAumentante(int[,] residual, int n, int s, int t, int[] pai)
         {
             for (int i = 1; i <= n; i++)
@@ -197,8 +161,7 @@ namespace TrabalhoGrafos.Classes
 
             Queue<int> fila = new Queue<int>();
             fila.Enqueue(s);
-            pai[s] = -2; // marca fonte como visitada
-
+            pai[s] = -2; 
             while (fila.Count > 0)
             {
                 int u = fila.Dequeue();
@@ -209,14 +172,14 @@ namespace TrabalhoGrafos.Classes
                     {
                         pai[v] = u;
                         if (v == t)
-                            return true;  // chegou no destino, entao ja achou caminho
+                            return true;  
 
                         fila.Enqueue(v);
                     }
                 }
             }
 
-            return false; // nao existe caminho aumentante
+            return false; 
         }
 
 
@@ -225,19 +188,17 @@ public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
     int n = grafo.NumeroVertices;
 
     bool[] visitado = new bool[n + 1];
-    int[] chave = new int[n + 1];      // guarda o menor peso para cada vértice
-    int[] pai = new int[n + 1];        // guarda a ligação MST
+    int[] chave = new int[n + 1];      
+    int[] pai = new int[n + 1];        
 
-    // Inicialização
     for (int i = 1; i <= n; i++)
     {
         chave[i] = int.MaxValue;
         pai[i] = -1;
     }
 
-    chave[1] = 0; // começa do vértice 1
+    chave[1] = 0; 
 
-    // Algoritmo de Prim
     for (int count = 1; count <= n; count++)
     {
         int u = -1;
@@ -251,7 +212,7 @@ public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
             }
         }
 
-        if (u == -1) break; // caso desconexo
+        if (u == -1) break; 
         visitado[u] = true;
 
         foreach (var aresta in grafo.ObterAdjacentes(u))
@@ -267,15 +228,12 @@ public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
         }
     }
 
-    // Calcula peso total da AGM
     int pesoTotal = 0;
     for (int i = 2; i <= n; i++)
         if (pai[i] != -1)
             pesoTotal += chave[i];
 
-    // =========================
-    // LOG DETALHADO (estilo contextualizado)
-    // =========================
+    
     StringBuilder logDetalhado = new StringBuilder();
     logDetalhado.AppendLine("--------------------------------------------------");
     logDetalhado.AppendLine($"[Hora Atual] - EXPANSÃO DA REDE DE COMUNICAÇÃO (AGM / MST)");
@@ -301,12 +259,8 @@ public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
     logDetalhado.AppendLine("");
     logDetalhado.AppendLine("Observação: Esta configuração garante conectividade total da malha logística sem criar ciclos desnecessários.");
 
-    // Escreve log no arquivo
     Log.Escrever("Árvore Geradora Mínima (MST)", logDetalhado.ToString(), idArquivo);
 
-    // =========================
-    // OUTPUT CONCISO NO TERMINAL
-    // =========================
     string resultadoFinal = $"Peso Total da AGM: {pesoTotal} | Número de Arestas: {n - 1}";
 
     return resultadoFinal;
@@ -316,8 +270,6 @@ public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
         {
             int n = grafo.NumeroVertices;
 
-            // 1. CONSTRUIR MAPA DE CONFLITOS (BIDIRECIONAL)
-            // Isso garante que se existe 1->2, o vértice 2 também saiba que 1 é seu vizinho.
             var conflitos = new Dictionary<int, List<int>>();
             for (int i = 1; i <= n; i++) conflitos[i] = new List<int>();
 
@@ -326,14 +278,11 @@ public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
                 foreach (var aresta in grafo.ObterAdjacentes(u))
                 {
                     int v = aresta.Destino;
-                    // Adiciona conflito de ida
                     conflitos[u].Add(v);
-                    // Adiciona conflito de volta (se v for válido)
                     if (v <= n) conflitos[v].Add(u);
                 }
             }
 
-            // 2. ALGORITMO GULOSO (Usando o mapa de conflitos)
             int[] cores = new int[n + 1];
             for (int i = 1; i <= n; i++) cores[i] = 0;
 
@@ -341,7 +290,6 @@ public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
             {
                 bool[] coresIndisponiveis = new bool[n + 1];
 
-                // Agora olhamos na lista 'conflitos', que tem ida e volta
                 foreach (var vizinho in conflitos[vertice])
                 {
                     int corVizinho = cores[vizinho];
@@ -351,7 +299,6 @@ public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
                     }
                 }
 
-                // Atribui a menor cor
                 for (int cor = 1; cor <= n; cor++)
                 {
                     if (!coresIndisponiveis[cor])
@@ -362,7 +309,6 @@ public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
                 }
             }
 
-            // --- PÓS-PROCESSAMENTO (IGUAL AO ANTERIOR) ---
             int totalCores = 0;
             for (int i = 1; i <= n; i++)
                 if (cores[i] > totalCores) totalCores = cores[i];
@@ -387,13 +333,9 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
 {
     int n = grafo.NumeroVertices;
 
-    // ================================================================
-    //  CENÁRIO A — EULERIANO EM GRAFO DIRECIONADO (IN=OUT + KOSARAJU)
-    // ================================================================
 
     bool euleriano = true;
 
-    // --- 1. Verificar in-degree e out-degree ---
     Dictionary<int, int> inDegree = new Dictionary<int, int>();
     Dictionary<int, int> outDegree = new Dictionary<int, int>();
 
@@ -414,7 +356,6 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
             break;
         }
 
-    // --- 2. Verificar componente fortemente conectado (Kosaraju) ---
     if (euleriano)
     {
         bool[] vis1 = new bool[n + 1];
@@ -440,9 +381,6 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
     if (euleriano)
         rotaEuler = ConstruirCicloEulerianoHierholzer(grafo, verticeOrigem, out pesoEuler);
 
-    // ================================================================
-    //  CENÁRIO B — HAMILTONIANO (HEURÍSTICA GULOSA)
-    // ================================================================
 
     bool[] visitadoH = new bool[n + 1];
     List<int> rotaHamilton = new List<int>();
@@ -475,9 +413,6 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
 
     bool rotaHamiltonCompleta = (rotaHamilton.Count == n);
 
-    // ================================================================
-    //  LOG DETALHADO EM ARQUIVO
-    // ================================================================
 
     StringBuilder sb = new StringBuilder();
     sb.AppendLine($"--------------------------------------------------");
@@ -489,7 +424,6 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
     sb.AppendLine($"Vértice de origem escolhido: {verticeOrigem}");
     sb.AppendLine("");
 
-    // Euleriano
     if (euleriano)
     {
         sb.AppendLine("Cenário A — Percurso de Rotas (Ciclo Euleriano):");
@@ -512,7 +446,6 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
 
     sb.AppendLine("");
 
-    // Hamiltoniano
     sb.AppendLine("Cenário B — Percurso de Hubs (Heurística Hamiltoniana):");
     sb.AppendLine("Descrição: O inspetor tenta visitar todos os hubs exatamente uma vez, retornando ao ponto de origem se possível.");
     sb.AppendLine(rotaHamiltonCompleta ?
@@ -531,9 +464,6 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
 
     Log.Escrever("Rota de Inspeção", sb.ToString(), idArquivo);
 
-    // ================================================================
-    //  OUTPUT CONCISO PARA TERMINAL
-    // ================================================================
 
     string txt = "";
     txt += euleriano ? $"Ciclo Euleriano encontrado | Peso {pesoEuler}"
@@ -548,9 +478,6 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
 }
 
 
-        // ================================================================
-        // DFS normal
-        // ================================================================
         private static void DFS(IGrafo grafo, int u, bool[] visitado)
         {
             visitado[u] = true;
@@ -559,9 +486,6 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
                     DFS(grafo, a.Destino, visitado);
         }
 
-        // ================================================================
-        // Grafo reverso (necessário para Kosaraju)
-        // ================================================================
         private static Dictionary<int, List<int>> GrafoReverso(IGrafo grafo, int n)
         {
             var rev = new Dictionary<int, List<int>>();
@@ -575,9 +499,6 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
             return rev;
         }
 
-        // ================================================================
-        // DFS reverso para Kosaraju
-        // ================================================================
         private static void DFSReverso(Dictionary<int, List<int>> rev, int u, bool[] visitado)
         {
             visitado[u] = true;
@@ -586,14 +507,10 @@ public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem
                     DFSReverso(rev, v, visitado);
         }
 
-        // ================================================================
-        // Hierholzer para ciclo Euleriano (digrafo)
-        // ================================================================
         private static List<int> ConstruirCicloEulerianoHierholzer(IGrafo grafo, int inicio, out int pesoTotal)
         {
             pesoTotal = 0;
 
-            // Copiar adjacências para consumir arestas
             Dictionary<int, Queue<(int v, int peso)>> adj = new Dictionary<int, Queue<(int, int)>>();
 
             for (int u = 1; u <= grafo.NumeroVertices; u++)
