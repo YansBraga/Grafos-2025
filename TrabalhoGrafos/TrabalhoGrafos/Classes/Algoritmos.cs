@@ -110,6 +110,8 @@ namespace TrabalhoGrafos.Classes
 
             return resultadoFinal;
         }
+
+        // cálculo do fluxo máximo usando o algoritmo de Edmonds-Karp
         public static string FluxoMaximoEdmondsKarp(IGrafo grafo, int s, int t, int idArquivo)
         {
             int n = grafo.NumeroVertices;
@@ -167,6 +169,16 @@ namespace TrabalhoGrafos.Classes
             }
 
             // log de saíde
+            
+            // se não existir nenhum caminho aumentante
+            if (iteracoes == 0)
+            {
+                string semCaminho =
+                    $"Não existe caminho da origem {s} até o destino {t} na rede residual (Fluxo máximo = 0).";
+
+                Log.Escrever("Capacidade Máxima de Escoamento (Fluxo Máximo)", semCaminho, idArquivo);
+                return semCaminho;
+            }
 
             string resultadoFinal =
                 $"Origem (fonte S): {s} | Destino (sorvedouro T): {t} | " +
