@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using TrabalhoGrafos.Classes;
 using TrabalhoGrafos.Interfaces;
 
@@ -119,15 +119,17 @@ namespace TrabalhoGrafos
                         Console.ReadKey();
                         break;
                     case 3:
-                        Console.WriteLine("Implementar MST...");
+                        Console.WriteLine(Algoritmos.ArvoreGeradoraMinima(grafo, idArquivo));                        
                         Console.ReadKey();
                         break;
                     case 4:
-                        Console.WriteLine("Implementar Coloração...");
+                        Console.WriteLine(Algoritmos.Coloracao(grafo, idArquivo));                        
                         Console.ReadKey();
                         break;
                     case 5:
-                        Console.WriteLine("Implementar Inspeção...");
+                        Console.Write("Informe o HUB de origem: ");
+                        int verticeOrigem = int.Parse(Console.ReadLine());
+                        Console.WriteLine(Algoritmos.RotaInspecao(grafo, idArquivo, verticeOrigem));
                         Console.ReadKey();
                         break;
                     case 0:
