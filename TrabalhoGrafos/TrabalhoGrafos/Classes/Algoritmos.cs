@@ -294,52 +294,74 @@ namespace TrabalhoGrafos.Classes
 
 
 
-        public static string Coloracao(IGrafo grafo, int idArquivo)
-        {
-            int n = grafo.NumeroVertices;
-            int[] cores = new int[n + 1]; // vetor para armazenar a cor de cada vértice (1..n)
-            for (int i = 1; i <= n; i++) cores[i] = 0;
+       public static string Coloracao(IGrafo grafo, int idArquivo)
+ {
+     int n = grafo.NumeroVertices;
 
-            for (int vertice = 1; vertice <= n; vertice++)
-            {
-                bool[] coresAdjacentes = new bool[n + 1];
+     // 1. CONSTRUIR MAPA DE CONFLITOS (BIDIRECIONAL)
+     // Isso garante que se existe 1->2, o vértice 2 também saiba que 1 é seu vizinho.
+     var conflitos = new Dictionary<int, List<int>>();
+     for (int i = 1; i <= n; i++) conflitos[i] = new List<int>();
 
-                foreach (var aresta in grafo.ObterAdjacentes(vertice))
-                {
-                    int corVizinho = cores[aresta.Destino];
-                    if (corVizinho != 0)
-                        coresAdjacentes[corVizinho] = true;
-                }
+     for (int u = 1; u <= n; u++)
+     {
+         foreach (var aresta in grafo.ObterAdjacentes(u))
+         {
+             int v = aresta.Destino;
+             // Adiciona conflito de ida
+             conflitos[u].Add(v);
+             // Adiciona conflito de volta (se v for válido)
+             if (v <= n) conflitos[v].Add(u);
+         }
+     }
 
-                // Atribui a menor cor disponível
-                for (int cor = 1; cor <= n; cor++)
-                {
-                    if (!coresAdjacentes[cor])
-                    {
-                        cores[vertice] = cor;
-                        break;
-                    }
-                }
-            }
+     // 2. ALGORITMO GULOSO (Usando o mapa de conflitos)
+     int[] cores = new int[n + 1];
+     for (int i = 1; i <= n; i++) cores[i] = 0;
 
-            // Determinar número de cores usadas
-            int coresUsadas = 0;
-            for (int i = 1; i <= n; i++)
-                coresUsadas = Math.Max(coresUsadas, cores[i]);
+     for (int vertice = 1; vertice <= n; vertice++)
+     {
+         bool[] coresIndisponiveis = new bool[n + 1];
 
-            // Log detalhado
-            string logDetalhado = $"Arquivo grafo0{idArquivo}.dimacs colorido com {coresUsadas} cores.\n";
-            for (int i = 1; i <= n; i++)
-                logDetalhado += $"Vértice {i} -> Cor {cores[i]}\n";
+         // Agora olhamos na lista 'conflitos', que tem ida e volta
+         foreach (var vizinho in conflitos[vertice])
+         {
+             int corVizinho = cores[vizinho];
+             if (corVizinho != 0)
+             {
+                 coresIndisponiveis[corVizinho] = true;
+             }
+         }
 
-            Log.Escrever("Coloração de Vértices", logDetalhado, idArquivo);
+         // Atribui a menor cor
+         for (int cor = 1; cor <= n; cor++)
+         {
+             if (!coresIndisponiveis[cor])
+             {
+                 cores[vertice] = cor;
+                 break;
+             }
+         }
+     }
 
-            // Resultado resumido para o terminal (uma linha, como no fluxo máximo)
-            string resultadoFinal = $"Coloração de Vértices: Número de cores usadas = {coresUsadas}";
-            return resultadoFinal;
-        }
+     // --- PÓS-PROCESSAMENTO (IGUAL AO ANTERIOR) ---
+     int totalCores = 0;
+     for (int i = 1; i <= n; i++)
+         if (cores[i] > totalCores) totalCores = cores[i];
 
+     StringBuilder sb = new StringBuilder();
+     sb.AppendLine($"Resultado da Coloração:");
+     sb.AppendLine($"Total de Turnos (Cores) necessários: {totalCores}");
+     sb.AppendLine("--------------------------------------------------");
+     sb.AppendLine("Cronograma Sugerido:");
 
+     for (int i = 1; i <= n; i++)
+         sb.AppendLine($"Hub {i}: Turno {cores[i]}");
+
+     Log.Escrever("Agendamento de Manutenções (Coloração)", sb.ToString(), idArquivo);
+
+     return $"Mínimo de Turnos: {totalCores}";
+ }
 
 
 
