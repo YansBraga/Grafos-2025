@@ -110,6 +110,8 @@ namespace TrabalhoGrafos.Classes
 
             return resultadoFinal;
         }
+
+        // cálculo do fluxo máximo usando o algoritmo de Edmonds-Karp
         public static string FluxoMaximoEdmondsKarp(IGrafo grafo, int s, int t, int idArquivo)
         {
             int n = grafo.NumeroVertices;
@@ -167,6 +169,16 @@ namespace TrabalhoGrafos.Classes
             }
 
             // log de saíde
+            
+            // se não existir nenhum caminho aumentante
+            if (iteracoes == 0)
+            {
+                string semCaminho =
+                    $"Não existe caminho da origem {s} até o destino {t} na rede residual (Fluxo máximo = 0).";
+
+                Log.Escrever("Capacidade Máxima de Escoamento (Fluxo Máximo)", semCaminho, idArquivo);
+                return semCaminho;
+            }
 
             string resultadoFinal =
                 $"Origem (fonte S): {s} | Destino (sorvedouro T): {t} | " +
@@ -208,113 +220,141 @@ namespace TrabalhoGrafos.Classes
         }
 
 
-        public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
+public static string ArvoreGeradoraMinima(IGrafo grafo, int idArquivo)
+{
+    int n = grafo.NumeroVertices;
+
+    bool[] visitado = new bool[n + 1];
+    int[] chave = new int[n + 1];      // guarda o menor peso para cada vértice
+    int[] pai = new int[n + 1];        // guarda a ligação MST
+
+    // Inicialização
+    for (int i = 1; i <= n; i++)
+    {
+        chave[i] = int.MaxValue;
+        pai[i] = -1;
+    }
+
+    chave[1] = 0; // começa do vértice 1
+
+    // Algoritmo de Prim
+    for (int count = 1; count <= n; count++)
+    {
+        int u = -1;
+        int min = int.MaxValue;
+        for (int v = 1; v <= n; v++)
         {
-            int n = grafo.NumeroVertices;
-
-            bool[] visitado = new bool[n + 1];
-            int[] chave = new int[n + 1];      // guarda o menor peso para cada vértice
-            int[] pai = new int[n + 1];        // guarda a ligação MST
-
-            // Inicialização
-            for (int i = 1; i <= n; i++)
+            if (!visitado[v] && chave[v] < min)
             {
-                chave[i] = int.MaxValue;
-                pai[i] = -1;
+                min = chave[v];
+                u = v;
             }
-
-            chave[1] = 0; // começa do vértice 1
-
-            // Algoritmo de Prim
-            for (int count = 1; count <= n; count++)
-            {
-                // encontra o vértice com menor chave que não foi visitado
-                int u = -1;
-                int min = int.MaxValue;
-                for (int v = 1; v <= n; v++)
-                {
-                    if (!visitado[v] && chave[v] < min)
-                    {
-                        min = chave[v];
-                        u = v;
-                    }
-                }
-
-                if (u == -1) break; // caso desconexo
-                visitado[u] = true;
-
-                // atualiza os vértices adjacentes
-                foreach (var aresta in grafo.ObterAdjacentes(u))
-                {
-                    int v = aresta.Destino;
-                    int peso = aresta.Peso;
-
-                    if (!visitado[v] && peso < chave[v])
-                    {
-                        chave[v] = peso;
-                        pai[v] = u;
-                    }
-                }
-            }
-
-            // Calcula peso total da AGM
-            int pesoTotal = 0;
-            for (int i = 2; i <= n; i++)
-                if (pai[i] != -1)
-                    pesoTotal += chave[i];
-
-            // Prepara log detalhado
-            StringBuilder logDetalhado = new StringBuilder();
-            logDetalhado.AppendLine($"Árvore Geradora Mínima do arquivo grafo0{idArquivo}.dimacs:");
-            logDetalhado.AppendLine($"Vértices: {n} | Peso Total da AGM: {pesoTotal} | Arestas na AGM: {n - 1}");
-            logDetalhado.AppendLine("Arestas da AGM:");
-
-            // Lista todas as arestas da AGM
-            for (int i = 2; i <= n; i++)
-            {
-                if (pai[i] != -1)
-                {
-                    logDetalhado.AppendLine($"Aresta: {pai[i]} - {i} | Peso: {chave[i]}");
-                }
-                else
-                {
-                    // Para casos desconexos
-                    logDetalhado.AppendLine($"Vértice {i} não conectado à AGM");
-                }
-            }
-
-            // Escreve log no arquivo
-            Log.Escrever("Árvore Geradora Mínima (MST)", logDetalhado.ToString(), idArquivo);
-
-            // Output conciso no terminal
-            string resultadoFinal = $"Vértices: {n} | Peso Total da AGM: {pesoTotal} | Arestas na AGM: {n - 1}";
-
-            return resultadoFinal;
         }
 
+        if (u == -1) break; // caso desconexo
+        visitado[u] = true;
 
+        foreach (var aresta in grafo.ObterAdjacentes(u))
+        {
+            int v = aresta.Destino;
+            int peso = aresta.Peso;
+
+            if (!visitado[v] && peso < chave[v])
+            {
+                chave[v] = peso;
+                pai[v] = u;
+            }
+        }
+    }
+
+    // Calcula peso total da AGM
+    int pesoTotal = 0;
+    for (int i = 2; i <= n; i++)
+        if (pai[i] != -1)
+            pesoTotal += chave[i];
+
+    // =========================
+    // LOG DETALHADO (estilo contextualizado)
+    // =========================
+    StringBuilder logDetalhado = new StringBuilder();
+    logDetalhado.AppendLine("--------------------------------------------------");
+    logDetalhado.AppendLine($"[Hora Atual] - EXPANSÃO DA REDE DE COMUNICAÇÃO (AGM / MST)");
+    logDetalhado.AppendLine("--------------------------------------------------");
+    logDetalhado.AppendLine($"Árvore Geradora Mínima do arquivo grafo0{idArquivo}.dimacs:");
+    logDetalhado.AppendLine("Objetivo: Conectar todos os hubs com o menor custo total possível.");
+    logDetalhado.AppendLine($"Vértices: {n} | Peso Total da AGM: {pesoTotal} | Número de Arestas na AGM: {n - 1}");
+    logDetalhado.AppendLine("");
+    logDetalhado.AppendLine("Arestas selecionadas para a instalação da rede:");
+
+    for (int i = 2; i <= n; i++)
+    {
+        if (pai[i] != -1)
+        {
+            logDetalhado.AppendLine($"- Hub {pai[i]} → Hub {i} | Custo: {chave[i]}");
+        }
+        else
+        {
+            logDetalhado.AppendLine($"- Hub {i} não conectado à AGM");
+        }
+    }
+
+    logDetalhado.AppendLine("");
+    logDetalhado.AppendLine("Observação: Esta configuração garante conectividade total da malha logística sem criar ciclos desnecessários.");
+
+    // Escreve log no arquivo
+    Log.Escrever("Árvore Geradora Mínima (MST)", logDetalhado.ToString(), idArquivo);
+
+    // =========================
+    // OUTPUT CONCISO NO TERMINAL
+    // =========================
+    string resultadoFinal = $"Peso Total da AGM: {pesoTotal} | Número de Arestas: {n - 1}";
+
+    return resultadoFinal;
+}
 
         public static string Coloracao(IGrafo grafo, int idArquivo)
         {
             int n = grafo.NumeroVertices;
-            int[] cores = new int[n + 1]; // vetor para armazenar a cor de cada vértice (1..n)
+
+            // 1. CONSTRUIR MAPA DE CONFLITOS (BIDIRECIONAL)
+            // Isso garante que se existe 1->2, o vértice 2 também saiba que 1 é seu vizinho.
+            var conflitos = new Dictionary<int, List<int>>();
+            for (int i = 1; i <= n; i++) conflitos[i] = new List<int>();
+
+            for (int u = 1; u <= n; u++)
+            {
+                foreach (var aresta in grafo.ObterAdjacentes(u))
+                {
+                    int v = aresta.Destino;
+                    // Adiciona conflito de ida
+                    conflitos[u].Add(v);
+                    // Adiciona conflito de volta (se v for válido)
+                    if (v <= n) conflitos[v].Add(u);
+                }
+            }
+
+            // 2. ALGORITMO GULOSO (Usando o mapa de conflitos)
+            int[] cores = new int[n + 1];
             for (int i = 1; i <= n; i++) cores[i] = 0;
 
             for (int vertice = 1; vertice <= n; vertice++)
             {
-                bool[] coresAdjacentes = new bool[n + 1];
+                bool[] coresIndisponiveis = new bool[n + 1];
 
-                foreach (var aresta in grafo.ObterAdjacentes(vertice))
+                // Agora olhamos na lista 'conflitos', que tem ida e volta
+                foreach (var vizinho in conflitos[vertice])
                 {
-                    int corVizinho = cores[aresta.Destino];
+                    int corVizinho = cores[vizinho];
                     if (corVizinho != 0)
-                        coresAdjacentes[corVizinho] = true;
+                    {
+                        coresIndisponiveis[corVizinho] = true;
+                    }
                 }
 
-                // Atribui a menor cor disponível
+                // Atribui a menor cor
                 for (int cor = 1; cor <= n; cor++)
                 {
-                    if (!coresAdjacentes[cor])
+                    if (!coresIndisponiveis[cor])
                     {
                         cores[vertice] = cor;
                         break;
@@ -322,185 +362,253 @@ namespace TrabalhoGrafos.Classes
                 }
             }
 
-            // Determinar número de cores usadas
-            int coresUsadas = 0;
+            // --- PÓS-PROCESSAMENTO (IGUAL AO ANTERIOR) ---
+            int totalCores = 0;
             for (int i = 1; i <= n; i++)
-                coresUsadas = Math.Max(coresUsadas, cores[i]);
+                if (cores[i] > totalCores) totalCores = cores[i];
 
-            // Log detalhado
-            string logDetalhado = $"Arquivo grafo0{idArquivo}.dimacs colorido com {coresUsadas} cores.\n";
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"Resultado da Coloração:");
+            sb.AppendLine($"Total de Turnos (Cores) necessários: {totalCores}");
+            sb.AppendLine("--------------------------------------------------");
+            sb.AppendLine("Cronograma Sugerido:");
+
             for (int i = 1; i <= n; i++)
-                logDetalhado += $"Vértice {i} -> Cor {cores[i]}\n";
+                sb.AppendLine($"Hub {i}: Turno {cores[i]}");
 
-            Log.Escrever("Coloração de Vértices", logDetalhado, idArquivo);
+            Log.Escrever("Agendamento de Manutenções (Coloração)", sb.ToString(), idArquivo);
 
-            // Resultado resumido para o terminal (uma linha, como no fluxo máximo)
-            string resultadoFinal = $"Coloração de Vértices: Número de cores usadas = {coresUsadas}";
-            return resultadoFinal;
+            return $"Mínimo de Turnos: {totalCores}";
         }
 
+   
 
+public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem)
+{
+    int n = grafo.NumeroVertices;
 
+    // ================================================================
+    //  CENÁRIO A — EULERIANO EM GRAFO DIRECIONADO (IN=OUT + KOSARAJU)
+    // ================================================================
 
+    bool euleriano = true;
 
+    // --- 1. Verificar in-degree e out-degree ---
+    Dictionary<int, int> inDegree = new Dictionary<int, int>();
+    Dictionary<int, int> outDegree = new Dictionary<int, int>();
 
-        public static string RotaInspecao(IGrafo grafo, int idArquivo, int verticeOrigem)
+    for (int u = 1; u <= n; u++)
+    {
+        outDegree[u] = grafo.ObterAdjacentes(u).Count;
+        inDegree[u] = 0;
+    }
+
+    for (int u = 1; u <= n; u++)
+        foreach (var a in grafo.ObterAdjacentes(u))
+            inDegree[a.Destino]++;
+
+    for (int u = 1; u <= n; u++)
+        if (inDegree[u] != outDegree[u])
         {
-            int n = grafo.NumeroVertices;
-
-            // =========================
-            // CENÁRIO A – EULERIANO
-            // =========================
-
-            // Verifica se todos os vértices têm grau de entrada igual ao grau de saída
-            bool euleriano = true;
-            for (int u = 1; u <= n; u++)
-            {
-                int grauSaida = grafo.ObterAdjacentes(u).Count;
-                int grauEntrada = 0;
-                for (int v = 1; v <= n; v++)
-                    grauEntrada += grafo.ObterAdjacentes(v).Count(a => a.Destino == u);
-
-                if (grauEntrada != grauSaida)
-                {
-                    euleriano = false;
-                    break;
-                }
-            }
-
-            // Verifica conectividade a partir do vértice escolhido
-            if (euleriano)
-            {
-                bool[] visitado = new bool[n + 1];
-                DFS(grafo, verticeOrigem, visitado);
-                if (visitado.Skip(1).Any(v => !v)) euleriano = false;
-            }
-
-            List<int> rotaEuler = new List<int>();
-            int pesoEuler = 0;
-
-            if (euleriano)
-            {
-                rotaEuler = ConstruirCicloEulerianoHierholzer(grafo, verticeOrigem, out pesoEuler);
-            }
-
-            // =========================
-            // CENÁRIO B – HAMILTONIANO (heurística)
-            // =========================
-
-            bool[] visitadoHamilton = new bool[n + 1];
-            List<int> rotaHamilton = new List<int>();
-            int pesoHamilton = 0;
-
-            int atualH = verticeOrigem;
-            rotaHamilton.Add(atualH);
-            visitadoHamilton[atualH] = true;
-
-            while (rotaHamilton.Count < n)
-            {
-                bool encontrou = false;
-                foreach (var a in grafo.ObterAdjacentes(atualH))
-                {
-                    int v = a.Destino;
-                    if (!visitadoHamilton[v])
-                    {
-                        rotaHamilton.Add(v);
-                        pesoHamilton += a.Peso;
-                        visitadoHamilton[v] = true;
-                        atualH = v;
-                        encontrou = true;
-                        break;
-                    }
-                }
-
-                if (!encontrou) break;
-            }
-
-            bool rotaHamiltonCompleta = rotaHamilton.Count == n;
-
-            // =========================
-            // LOG DETALHADO
-            // =========================
-
-            StringBuilder logDetalhado = new StringBuilder();
-            logDetalhado.AppendLine($"Rota de Inspeção do arquivo grafo0{idArquivo}.dimacs:");
-            logDetalhado.AppendLine($"Vértices: {n}");
-            logDetalhado.AppendLine($"Vértice de origem escolhido: {verticeOrigem}");
-            logDetalhado.AppendLine("");
-
-            // Cenário A
-            if (euleriano)
-            {
-                logDetalhado.AppendLine("Cenário A – Ciclo Euleriano encontrado:");
-                logDetalhado.AppendLine($"Peso total: {pesoEuler}");
-                logDetalhado.AppendLine("Rota (arestas percorridas):");
-                for (int i = 0; i < rotaEuler.Count - 1; i++)
-                {
-                    int u = rotaEuler[i];
-                    int v = rotaEuler[i + 1];
-                    int peso = grafo.ObterAdjacentes(u).First(a => a.Destino == v).Peso;
-                    logDetalhado.AppendLine($"Aresta: {u} - {v} | Peso: {peso}");
-                }
-            }
-            else
-            {
-                logDetalhado.AppendLine("Cenário A – Ciclo Euleriano NÃO existe");
-            }
-
-            logDetalhado.AppendLine("");
-
-            // Cenário B
-            logDetalhado.AppendLine("Cenário B – Percurso de Hubs:");
-            if (rotaHamiltonCompleta)
-                logDetalhado.AppendLine($"Hamiltoniano heurístico completo | Peso total: {pesoHamilton}");
-            else
-                logDetalhado.AppendLine($"Hamiltoniano heurístico parcial (não visitou todos os vértices) | Peso total: {pesoHamilton}");
-
-            logDetalhado.AppendLine("Rota (arestas percorridas):");
-            for (int i = 0; i < rotaHamilton.Count - 1; i++)
-            {
-                int u = rotaHamilton[i];
-                int v = rotaHamilton[i + 1];
-                int peso = grafo.ObterAdjacentes(u).First(a => a.Destino == v).Peso;
-                logDetalhado.AppendLine($"Aresta: {u} - {v} | Peso: {peso}");
-            }
-
-            // Escreve log no arquivo
-            Log.Escrever("Rota de Inspeção", logDetalhado.ToString(), idArquivo);
-
-            // =========================
-            // OUTPUT CONCISO
-            // =========================
-
-            string resultadoFinal = "";
-            resultadoFinal += euleriano ? $"Ciclo Euleriano encontrado | Peso: {pesoEuler}" : "Ciclo Euleriano NÃO existe";
-            resultadoFinal += " | ";
-            resultadoFinal += rotaHamiltonCompleta ? $"Hamiltoniano heurístico completo | Peso: {pesoHamilton}" :
-                                                      $"Hamiltoniano heurístico parcial | Peso: {pesoHamilton}";
-
-            return resultadoFinal;
+            euleriano = false;
+            break;
         }
 
-        // =========================
-        // MÉTODO AUXILIAR – Hierholzer para ciclo Euleriano
-        // =========================
+    // --- 2. Verificar componente fortemente conectado (Kosaraju) ---
+    if (euleriano)
+    {
+        bool[] vis1 = new bool[n + 1];
+        DFS(grafo, verticeOrigem, vis1);
 
+        if (vis1.Skip(1).Any(v => !v))
+            euleriano = false;
+        else
+        {
+            var reverso = GrafoReverso(grafo, n);
+
+            bool[] vis2 = new bool[n + 1];
+            DFSReverso(reverso, verticeOrigem, vis2);
+
+            if (vis2.Skip(1).Any(v => !v))
+                euleriano = false;
+        }
+    }
+
+    List<int> rotaEuler = new List<int>();
+    int pesoEuler = 0;
+
+    if (euleriano)
+        rotaEuler = ConstruirCicloEulerianoHierholzer(grafo, verticeOrigem, out pesoEuler);
+
+    // ================================================================
+    //  CENÁRIO B — HAMILTONIANO (HEURÍSTICA GULOSA)
+    // ================================================================
+
+    bool[] visitadoH = new bool[n + 1];
+    List<int> rotaHamilton = new List<int>();
+    int pesoHamilton = 0;
+
+    int atualH = verticeOrigem;
+    rotaHamilton.Add(atualH);
+    visitadoH[atualH] = true;
+
+    while (rotaHamilton.Count < n)
+    {
+        bool encontrou = false;
+
+        foreach (var a in grafo.ObterAdjacentes(atualH))
+        {
+            int v = a.Destino;
+            if (!visitadoH[v])
+            {
+                rotaHamilton.Add(v);
+                pesoHamilton += a.Peso;
+                visitadoH[v] = true;
+                atualH = v;
+                encontrou = true;
+                break;
+            }
+        }
+
+        if (!encontrou) break;
+    }
+
+    bool rotaHamiltonCompleta = (rotaHamilton.Count == n);
+
+    // ================================================================
+    //  LOG DETALHADO EM ARQUIVO
+    // ================================================================
+
+    StringBuilder sb = new StringBuilder();
+    sb.AppendLine($"--------------------------------------------------");
+    sb.AppendLine($"[Hora Atual] - ROTA DE INSPEÇÃO");
+    sb.AppendLine($"--------------------------------------------------");
+    sb.AppendLine($"Arquivo: grafo0{idArquivo}.dimacs");
+    sb.AppendLine($"Objetivo: Verificar percursos de inspeção na malha logística");
+    sb.AppendLine($"Vértices (Hubs): {n}");
+    sb.AppendLine($"Vértice de origem escolhido: {verticeOrigem}");
+    sb.AppendLine("");
+
+    // Euleriano
+    if (euleriano)
+    {
+        sb.AppendLine("Cenário A — Percurso de Rotas (Ciclo Euleriano):");
+        sb.AppendLine($"Descrição: O inspetor consegue percorrer todas as rotas exatamente uma vez, retornando ao hub inicial.");
+        sb.AppendLine($"Peso total do percurso: {pesoEuler}");
+        sb.AppendLine("Sequência de rotas percorridas:");
+        for (int i = 0; i < rotaEuler.Count - 1; i++)
+        {
+            int u = rotaEuler[i];
+            int v = rotaEuler[i + 1];
+            int peso = grafo.ObterAdjacentes(u).First(a => a.Destino == v).Peso;
+            sb.AppendLine($"  Hub {u} -> Hub {v} | Custo: {peso}");
+        }
+    }
+    else
+    {
+        sb.AppendLine("Cenário A — Percurso de Rotas (Ciclo Euleriano): NÃO existe");
+        sb.AppendLine("Observação: Não é possível percorrer todas as rotas uma única vez retornando ao hub inicial devido a grau de entrada/saída desigual ou falta de conectividade forte.");
+    }
+
+    sb.AppendLine("");
+
+    // Hamiltoniano
+    sb.AppendLine("Cenário B — Percurso de Hubs (Heurística Hamiltoniana):");
+    sb.AppendLine("Descrição: O inspetor tenta visitar todos os hubs exatamente uma vez, retornando ao ponto de origem se possível.");
+    sb.AppendLine(rotaHamiltonCompleta ?
+                  $"Resultado: Completo | Peso total do percurso: {pesoHamilton}" :
+                  $"Resultado: Parcial | Peso total do percurso: {pesoHamilton}");
+    sb.AppendLine("Sequência de hubs percorridos:");
+    for (int i = 0; i < rotaHamilton.Count - 1; i++)
+    {
+        int u = rotaHamilton[i];
+        int v = rotaHamilton[i + 1];
+        int peso = grafo.ObterAdjacentes(u).First(a => a.Destino == v).Peso;
+        sb.AppendLine($"  Hub {u} -> Hub {v} | Custo: {peso}");
+    }
+    sb.AppendLine("");
+    sb.AppendLine("Observação: Este percurso auxilia o planejamento logístico a identificar uma rota de inspeção eficiente pelos hubs.");
+
+    Log.Escrever("Rota de Inspeção", sb.ToString(), idArquivo);
+
+    // ================================================================
+    //  OUTPUT CONCISO PARA TERMINAL
+    // ================================================================
+
+    string txt = "";
+    txt += euleriano ? $"Ciclo Euleriano encontrado | Peso {pesoEuler}"
+                     : "Ciclo Euleriano NÃO existe";
+
+    txt += " | ";
+
+    txt += rotaHamiltonCompleta ? $"Hamiltoniano heurístico completo | Peso {pesoHamilton}"
+                                : $"Hamiltoniano heurístico parcial | Peso {pesoHamilton}";
+
+    return txt;
+}
+
+
+        // ================================================================
+        // DFS normal
+        // ================================================================
+        private static void DFS(IGrafo grafo, int u, bool[] visitado)
+        {
+            visitado[u] = true;
+            foreach (var a in grafo.ObterAdjacentes(u))
+                if (!visitado[a.Destino])
+                    DFS(grafo, a.Destino, visitado);
+        }
+
+        // ================================================================
+        // Grafo reverso (necessário para Kosaraju)
+        // ================================================================
+        private static Dictionary<int, List<int>> GrafoReverso(IGrafo grafo, int n)
+        {
+            var rev = new Dictionary<int, List<int>>();
+            for (int i = 1; i <= n; i++)
+                rev[i] = new List<int>();
+
+            for (int u = 1; u <= n; u++)
+                foreach (var a in grafo.ObterAdjacentes(u))
+                    rev[a.Destino].Add(u);
+
+            return rev;
+        }
+
+        // ================================================================
+        // DFS reverso para Kosaraju
+        // ================================================================
+        private static void DFSReverso(Dictionary<int, List<int>> rev, int u, bool[] visitado)
+        {
+            visitado[u] = true;
+            foreach (var v in rev[u])
+                if (!visitado[v])
+                    DFSReverso(rev, v, visitado);
+        }
+
+        // ================================================================
+        // Hierholzer para ciclo Euleriano (digrafo)
+        // ================================================================
         private static List<int> ConstruirCicloEulerianoHierholzer(IGrafo grafo, int inicio, out int pesoTotal)
         {
             pesoTotal = 0;
 
-            // Copia a lista de adjacência para manipular arestas
-            Dictionary<int, Queue<(int destino, int peso)>> adj = new Dictionary<int, Queue<(int, int)>>();
-            for (int u = 1; u <= grafo.NumeroVertices; u++)
-                adj[u] = new Queue<(int, int)>(grafo.ObterAdjacentes(u).Select(a => (a.Destino, a.Peso)));
+            // Copiar adjacências para consumir arestas
+            Dictionary<int, Queue<(int v, int peso)>> adj = new Dictionary<int, Queue<(int, int)>>();
 
-            List<int> ciclo = new List<int>();
+            for (int u = 1; u <= grafo.NumeroVertices; u++)
+                adj[u] = new Queue<(int, int)>(grafo.ObterAdjacentes(u)
+                                                .Select(a => (a.Destino, a.Peso)));
+
             Stack<int> stack = new Stack<int>();
+            List<int> ciclo = new List<int>();
+
             stack.Push(inicio);
 
             while (stack.Count > 0)
             {
                 int u = stack.Peek();
+
                 if (adj[u].Count == 0)
                 {
                     ciclo.Add(u);
@@ -509,8 +617,8 @@ namespace TrabalhoGrafos.Classes
                 else
                 {
                     var (v, peso) = adj[u].Dequeue();
-                    stack.Push(v);
                     pesoTotal += peso;
+                    stack.Push(v);
                 }
             }
 
@@ -518,19 +626,6 @@ namespace TrabalhoGrafos.Classes
             return ciclo;
         }
 
-        // =========================
-        // MÉTODO AUXILIAR – DFS para conectividade
-        // =========================
-
-        private static void DFS(IGrafo grafo, int u, bool[] visitado)
-        {
-            visitado[u] = true;
-            foreach (var a in grafo.ObterAdjacentes(u))
-            {
-                if (!visitado[a.Destino])
-                    DFS(grafo, a.Destino, visitado);
-            }
-        }
 
     }
 
