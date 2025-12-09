@@ -1,6 +1,6 @@
 ## The House of the Seven Women (Beecrowd 3350)
 
-Link da solução
+[Link da solução](https://judge.beecrowd.com/en/runs/code/47543901) 
 
 ### Descrição 
 Vitória!

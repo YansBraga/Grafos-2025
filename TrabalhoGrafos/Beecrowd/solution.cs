@@ -1,114 +1,299 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 
-class Program
+class URI
 {
-    static int N;
-    static int M;
-    static bool[,] adj;          // adj[i, j] = existe aresta de i para j
-    static List<int> solution;   // guarda a solução encontrada
+    static int N, M;                      // N pares, M = 2N províncias
+    static int[][] grafoSaida;            // grafoSaida[i] = 6 vizinhos alcançáveis a partir de i (cauda da cláusula i)
+    static int[][] clausulasDaCaudaPorVertice; // clausulasDaCaudaPorVertice[v] = lista de cláusulas em que v aparece na cauda
+    static bool[] diretorioEscolhido;     // diretorioEscolhido[i] = província i escolhida para receber diretório
+    static int[] pontuacaoClausula;       // pontuacaoClausula[i] = # verdadeiros na cauda + 2 se cabeça verdadeira
+    static int[] clausulasRuins;          // lista de cláusulas com pontuacaoClausula <= 1
+    static int[] posicaoNaListaRuins;     // posicaoNaListaRuins[i] = índice de i em clausulasRuins ou -1
+    static int quantidadeRuins;
+    static int[] caudaNaoSatisfeita = new int[6]; // buffer para literais falsos da cauda
+    static Random gerador = new Random(123456);
 
-    static void Main()
+    // província gêmea (1,2) (3,4)
+    static int Gemea(int v)
     {
-        Console.Write("Defina N:");
-        string line = Console.ReadLine();
-        if (string.IsNullOrEmpty(line)) return;
+        return ((v & 1) == 1) ? v + 1 : v - 1;
+    }
 
-        N = int.Parse(line);
-        M = 2 * N;
+    static void AdicionaClausulaRuim(int c)
+    {
+        if (posicaoNaListaRuins[c] != -1) return;
+        posicaoNaListaRuins[c] = quantidadeRuins;
+        clausulasRuins[quantidadeRuins++] = c;
+    }
 
-        // Matriz de adjacência 
-        adj = new bool[M + 1, M + 1];
+    static void RemoveClausulaRuim(int c)
+    {
+        int idx = posicaoNaListaRuins[c];
+        if (idx == -1) return;
+        quantidadeRuins--;
+        int ultima = clausulasRuins[quantidadeRuins];
+        clausulasRuins[idx] = ultima;
+        posicaoNaListaRuins[ultima] = idx;
+        posicaoNaListaRuins[c] = -1;
+    }
+
+    static void RecalculaPontuacoes()
+    {
+        quantidadeRuins = 0;
+        for (int i = 1; i <= M; i++)
+            posicaoNaListaRuins[i] = -1;
 
         for (int i = 1; i <= M; i++)
         {
-            string[] p = Console.ReadLine()
-                                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-            // cada linha tem exatamente 6 vizinhos
-            for (int j = 0; j < p.Length; j++)
+            int cont = 0;
+            var vizinhos = grafoSaida[i];
+            for (int j = 0; j < 6; j++)
             {
-                int neighbor = int.Parse(p[j]);
-                adj[i, neighbor] = true;
+                if (diretorioEscolhido[vizinhos[j]]) cont++;
             }
+            if (diretorioEscolhido[i]) cont += 2; // cabeça satisfeita
+            pontuacaoClausula[i] = cont;
+            if (cont <= 1) AdicionaClausulaRuim(i);
         }
+    }
 
-        solution = null;
+    // Faz a inversão da variável cujo literal envolve a província "a"
+    static void InverteVariavelDoPar(int a)
+    {
+        if (a < 1 || a > M) return;
 
-        // começa tentando escolher 1 vértice do 1º par 
-        List<int> current = new List<int>();
-        SolveByPairs(1, current);
+        int u = a;
+        int v = Gemea(a);
 
-        Console.WriteLine("Solução encontrada:");
-        if (solution != null)
+        int antigoEscolhido, novoEscolhido;
+
+        if (diretorioEscolhido[u] && !diretorioEscolhido[v])
         {
-            // imprime um vértice por linha
-            foreach (int v in solution)
-                Console.WriteLine(v);
+            antigoEscolhido = u;
+            novoEscolhido = v;
+        }
+        else if (diretorioEscolhido[v] && !diretorioEscolhido[u])
+        {
+            antigoEscolhido = v;
+            novoEscolhido = u;
         }
         else
         {
-            Console.WriteLine("Nenhuma solucao encontrada");
-        }
-    }
-
-    // Tenta escolher um vértice para cada par 
-    // pairIndex = índice do par (1..N)
-    static void SolveByPairs(int pairIndex, List<int> chosen)
-    {
-        // se já achamos uma solução, não precisa continuar explorando
-        if (solution != null) return;
-
-        // se já escolhemos 1 de cada par, verifica se a seleção é válida
-        if (pairIndex > N)
-        {
-            if (ValidSolution(chosen))
-                solution = new List<int>(chosen);
+            // Se tem alguma inconsistência, arruma o par e recalcula tudo
+            if (gerador.Next(2) == 0)
+            {
+                diretorioEscolhido[u] = true;
+                diretorioEscolhido[v] = false;
+            }
+            else
+            {
+                diretorioEscolhido[v] = true;
+                diretorioEscolhido[u] = false;
+            }
+            RecalculaPontuacoes();
             return;
         }
 
-        int u = 2 * pairIndex - 1; // primeiro vértice do par
-        int v = 2 * pairIndex;     // segundo vértice do par
+        if (antigoEscolhido == novoEscolhido) return;
 
-        // Tenta escolher u
-        chosen.Add(u);
-        SolveByPairs(pairIndex + 1, chosen);
-        chosen.RemoveAt(chosen.Count - 1);
+        // aplica a reversão
+        diretorioEscolhido[antigoEscolhido] = false;
+        diretorioEscolhido[novoEscolhido] = true;
 
-        // Se já achou solução com u, não precisa testar v
-        if (solution != null) return;
+        // atualiza cabeças das cláusulas antigoEscolhido e novoEscolhido 
+        pontuacaoClausula[antigoEscolhido] -= 2;  // cabeça deixa de ser satisfeita
+        if (pontuacaoClausula[antigoEscolhido] <= 1) AdicionaClausulaRuim(antigoEscolhido);
+        else RemoveClausulaRuim(antigoEscolhido);
 
-        // Tenta escolher v
-        chosen.Add(v);
-        SolveByPairs(pairIndex + 1, chosen);
-        chosen.RemoveAt(chosen.Count - 1);
+        pontuacaoClausula[novoEscolhido] += 2;    // cabeça passa a ser satisfeita
+        if (pontuacaoClausula[novoEscolhido] <= 1) AdicionaClausulaRuim(novoEscolhido);
+        else RemoveClausulaRuim(novoEscolhido);
+
+        // atualiza caudas em que antigoEscolhido aparece 
+        var listaAntigo = clausulasDaCaudaPorVertice[antigoEscolhido];
+        for (int i = 0; i < listaAntigo.Length; i++)
+        {
+            int c = listaAntigo[i];
+            pontuacaoClausula[c]--;  // literal deixa de ser verdadeiro
+            if (pontuacaoClausula[c] <= 1) AdicionaClausulaRuim(c);
+            else RemoveClausulaRuim(c);
+        }
+
+        // atualiza caudas em que novoEscolhido aparece
+        var listaNovo = clausulasDaCaudaPorVertice[novoEscolhido];
+        for (int i = 0; i < listaNovo.Length; i++)
+        {
+            int c = listaNovo[i];
+            pontuacaoClausula[c]++;  // literal passa a ser verdadeiro
+            if (pontuacaoClausula[c] <= 1) AdicionaClausulaRuim(c);
+            else RemoveClausulaRuim(c);
+        }
     }
 
-    // Avalia a condição de existencia que é para cada vértice não pertencente ao conjunto S, existem pelo menos 4 vizinhos em S alcançáveis a partir dele.
-    static bool ValidSolution(List<int> S)
+    static bool SolucaoValida()
     {
-        bool[] inS = new bool[M + 1];
-        foreach (int v in S)
-            inS[v] = true;
+        // só pode ter no máximo 1 diretório por par de gêmeos
+        for (int p = 1; p <= N; p++)
+        {
+            int u = 2 * p - 1;
+            int v = 2 * p;
+            if (diretorioEscolhido[u] && diretorioEscolhido[v]) return false;
+        }
 
-        // Para cada vértice que NÃO está em S
+        // para cada província sem diretório, pelo menos 2 vizinhos com diretório
         for (int i = 1; i <= M; i++)
         {
-            if (inS[i]) continue;
+            if (diretorioEscolhido[i]) continue;
 
-            int count = 0;
-
-            // conta quantos vizinhos de i pertencem a S
-            for (int j = 1; j <= M; j++)
+            int cont = 0;
+            var vizinhos = grafoSaida[i];
+            for (int j = 0; j < 6; j++)
             {
-                if (adj[i, j] && inS[j])
-                    count++;
+                if (diretorioEscolhido[vizinhos[j]]) cont++;
             }
-
-            if (count < 4)
-                return false;  // falhou para este vértice
+            if (cont < 2) return false;
         }
 
         return true;
+    }
+
+    static void ImprimeSolucao()
+    {
+        var sb = new StringBuilder();
+        for (int i = 1; i <= M; i++)
+        {
+            if (diretorioEscolhido[i])
+                sb.AppendLine(i.ToString());
+        }
+        Console.Write(sb.ToString());
+    }
+
+    static void Main()
+    {
+        string linha = Console.ReadLine();
+        if (string.IsNullOrEmpty(linha))
+            return;
+
+        N = int.Parse(linha.Trim());
+        M = 2 * N;
+
+        grafoSaida = new int[M + 1][];
+        var listasClausulasPorVertice = new List<int>[M + 1];
+        for (int i = 1; i <= M; i++)
+            listasClausulasPorVertice[i] = new List<int>(6);
+
+        // Leitura das 2N linhas de adjacência
+        for (int i = 1; i <= M; i++)
+        {
+            string l = Console.ReadLine();
+            while (l != null && l.Trim().Length == 0)
+                l = Console.ReadLine();
+            if (l == null) return;
+
+            string[] partes = l.Split(new char[] { ' ', '\t' },
+                                      StringSplitOptions.RemoveEmptyEntries);
+            int[] vizinhos = new int[6];
+            for (int j = 0; j < 6; j++)
+            {
+                int v = int.Parse(partes[j]);
+                vizinhos[j] = v;
+                listasClausulasPorVertice[v].Add(i); // v aparece na cauda da cláusula i
+            }
+            grafoSaida[i] = vizinhos;
+        }
+
+        // convertendo listas em arrays
+        clausulasDaCaudaPorVertice = new int[M + 1][];
+        for (int v = 1; v <= M; v++)
+            clausulasDaCaudaPorVertice[v] = listasClausulasPorVertice[v].ToArray();
+
+        diretorioEscolhido = new bool[M + 1];
+        pontuacaoClausula = new int[M + 1];
+        clausulasRuins = new int[M + 1];
+        posicaoNaListaRuins = new int[M + 1];
+
+        const int MAX_REINICIOS = 5;
+        const int MAX_ITERACOES = 200000;
+
+        for (int tentativa = 0; tentativa < MAX_REINICIOS; tentativa++)
+        {
+            // sorteia valoração inicial exatamente 1 diretório por par de províncias-irmãs 
+            for (int i = 1; i <= M; i++)
+                diretorioEscolhido[i] = false;
+
+            for (int p = 1; p <= N; p++)
+            {
+                int u = 2 * p - 1;
+                int v = 2 * p;
+                if (gerador.Next(2) == 0)
+                {
+                    diretorioEscolhido[u] = true;
+                    diretorioEscolhido[v] = false;
+                }
+                else
+                {
+                    diretorioEscolhido[v] = true;
+                    diretorioEscolhido[u] = false;
+                }
+            }
+
+            // calcula pontuações e identifica cláusulas ruins
+            RecalculaPontuacoes();
+
+            for (int it = 0; it < MAX_ITERACOES; it++)
+            {
+                if (quantidadeRuins == 0)
+                {
+                    if (SolucaoValida())
+                    {
+                        ImprimeSolucao();
+                        return;
+                    }
+                    // se não for válida, recalcula
+                    RecalculaPontuacoes();
+                    if (quantidadeRuins == 0)
+                    {
+                        ImprimeSolucao();
+                        return;
+                    }
+                }
+
+                // escolhe cláusula ruim aleatória
+                int clausula = clausulasRuins[gerador.Next(quantidadeRuins)];
+
+                // se probabilidade p = 1/6, entao inverter variável da cabeça
+                if (gerador.Next(6) == 0)
+                {
+                    InverteVariavelDoPar(clausula);
+                }
+                else
+                {
+                    // ou escolhe literal falso da cauda de forma uniforme
+                    var vizinhos = grafoSaida[clausula];
+                    int naoSatisfeitos = 0;
+                    for (int j = 0; j < 6; j++)
+                    {
+                        int v = vizinhos[j];
+                        if (!diretorioEscolhido[v])
+                            caudaNaoSatisfeita[naoSatisfeitos++] = v;
+                    }
+
+                    if (naoSatisfeitos == 0)
+                    {
+                        // se tiver inconsistência numérica, recalcula tudo
+                        RecalculaPontuacoes();
+                        continue;
+                    }
+
+                    int verticeEscolhido = caudaNaoSatisfeita[gerador.Next(naoSatisfeitos)];
+                    InverteVariavelDoPar(verticeEscolhido);
+                }
+            }
+            // se não resolveu, recomeça outro sorteio inicial
+        }
+
+        ImprimeSolucao();
     }
 }
